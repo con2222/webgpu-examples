@@ -1,47 +1,49 @@
-# Примеры на WebGPU (C++ / Dawn)
+[Read in English](README.md) | [Читать на русском](README.ru.md)
 
 ![Logotype](images/webgpu_logo.png)
 
-Этот репозиторий содержит коллекцию обучающих примеров по работе с графическим API WebGPU на C++.
+# WebGPU Examples (C++ / Dawn)
 
-Все примеры взяты из моего личного опыта изучения графических API. Я старался выстроить кривую обучения от самых базовых вещей (инициализация окна) к более продвинутым концепциям.
+This repository contains a collection of educational examples for working with the WebGPU graphics API in C++.
 
-Главный принцип репозитория: **один пример — один файл**. Код намеренно не разбит на сложную архитектуру, чтобы его было легко читать сверху вниз. Внутри вы найдете подробные поясняющие комментарии к каждому этапу настройки WebGPU.
+All examples are drawn from my personal experience learning graphics APIs. I have tried to structure the learning curve from the most basic concepts (window initialization) to more advanced ones.
 
-## Структура проекта
+The main principle of the repository is: **one example — one file**. The code is intentionally not split into a complex architecture so that it is easy to read from top to bottom. Inside, you will find detailed explanatory comments for each stage of the WebGPU setup.
 
-Репозиторий разделен на папки (уровни). В каждой папке находится свой независимый `CMakeLists.txt` и исходный код примера:
+## Project Structure
 
-- `01_hello_window/` — Базовая инициализация инстанса, адаптера, девайса и окна.
+The repository is divided into folders (levels). Each folder contains its own independent `CMakeLists.txt` and the example's source code:
+
+- `01_hello_window/` — Basic initialization of the instance, adapter, device, and window.
     
-- `02_hello_triangle/` — ... (и так далее)
+- `02_hello_triangle/` — ... (and so on)
     
 
-## Требования для сборки
+## Build Requirements
 
-Для успешной компиляции примеров на вашем компьютере должны быть установлены:
+To successfully compile the examples on your computer, you must have the following installed:
 
-1. **CMake** (версии 3.20 или выше).
+1. **CMake** (version 3.20 or higher).
     
-2. **C++ компилятор** с поддержкой стандарта C++20.
+2. **C++ Compiler** with C++20 standard support.
     
-3. **SDL3** — используется для создания кроссплатформенных окон и обработки событий.
+3. **SDL3** — used for creating cross-platform windows and handling events.
     
-4. **Google Dawn** (Реализация WebGPU).
+4. **Google Dawn** (WebGPU implementation).
     
-    - **Важно:** Проект рассчитан на то, что вы предварительно собрали и установили библиотеку Dawn. Официальная инструкция по сборке Dawn через CMake доступна [здесь](https://github.com/google/dawn/blob/main/docs/quickstart-cmake.md).
+    - **Important:** The project assumes that you have previously built and installed the Dawn library. Official instructions for building Dawn via CMake are available [here](https://github.com/google/dawn/blob/main/docs/quickstart-cmake.md).
         
 
-## Как собрать проект
+## How to Build the Project
 
-Клонируйте репозиторий и используйте стандартные команды CMake (на примере сборки через Ninja или MSBuild):
+Clone the repository and use standard CMake commands (for example, building via Ninja or MSBuild):
 
 ```
 cmake -S . -B build
 cmake --build build
 ```
 
-## Полезные ресурсы
+## Useful Resources
 
-[Официальный репозиторий google-dawn с примерами](https://github.com/google/dawn)
-[Лучший старт для новичка](https://github.com/eliemichel/LearnWebGPU)
+[Official google-dawn repository with examples](https://github.com/google/dawn)
+[The best start for a beginner](https://github.com/eliemichel/LearnWebGPU)
