@@ -40,3 +40,8 @@
 cmake -S . -B build
 cmake --build build
 ```
+
+## Полезные ресурсы
+
+[Официальный репозиторий google-dawn с примерами](https://github.com/google/dawn)
+[Лучший старт для новичка](https://github.com/eliemichel/LearnWebGPU)
