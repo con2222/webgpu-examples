@@ -45,5 +45,5 @@ cmake --build build
 
 ## Useful Resources
 
-[Official google-dawn repository with examples](https://github.com/google/dawn)
-[The best start for a beginner](https://github.com/eliemichel/LearnWebGPU)
+* [Official google-dawn repository with examples](https://github.com/google/dawn)
+* [The best start for a beginner](https://github.com/eliemichel/LearnWebGPU)
