@@ -98,14 +98,14 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
 
         WGPUSurfaceSourceXlibWindow fromXlibWindow;
         fromXlibWindow.chain.next = NULL;
-        fromXlibWindow.chain.sType = WGPUSType_SurfaceSourceFromXlibWindow;
+        fromXlibWindow.chain.sType = WGPUSType_SurfaceSourceXlibWindow;
         fromXlibWindow.display = x11_display;
         fromXlibWindow.window = (uint32_t)x11_window;
 
+        WGPUStringView str;
         WGPUSurfaceDescriptor surfaceDescriptor;
-        surfaceDescriptor.nextInChain =
-            (const WGPUChainedStruct*)&fromXlibWindow.chain;
-        surfaceDescriptor.label = "X11 Window Surface";
+        surfaceDescriptor.nextInChain = &fromXlibWindow.chain;
+        surfaceDescriptor.label = str;
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }

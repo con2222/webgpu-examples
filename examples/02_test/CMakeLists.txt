@@ -14,8 +14,10 @@ add_executable(test hello_world.cpp)
 
 target_link_libraries(test PUBLIC dawn::webgpu_dawn glfw3webgpu)
 
+if (WIN32)
 add_custom_command(TARGET test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/utility/d3dcompiler_47.dll"
         "$<TARGET_FILE_DIR:hello_window>"
 )
+endif()

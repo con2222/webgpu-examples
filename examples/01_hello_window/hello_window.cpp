@@ -1,4 +1,4 @@
-#include <glfw/glfw3.h>
+#include <GLFW/glfw3.h>
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_cpp_print.h>

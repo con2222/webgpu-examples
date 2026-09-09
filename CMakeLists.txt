@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14...4.4)
-project(examples LANGUAGES CXX)
+project(examples LANGUAGES C CXX)
 
 include(FetchContent)
 
