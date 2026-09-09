@@ -1,0 +1,23 @@
+# Enable checks for common bugs, performance issues, modern C++ idioms, and readability:
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*
+
+# Disable overly strict or context-inappropriate checks:
+# - modernize-use-trailing-return-type: Prevents forcing trailing return types (auto func() -> int)
+# - readability-magic-numbers: Allows numeric literals (e.g., 0.5f, 3.14f) commonly used in graphics programming
+# - readability-braces-around-statements: Allows single-line conditional statements without braces (e.g., if (x) return;)
+CheckOptions:
+  - key:               modernize-use-trailing-return-type
+    value:             false
+  - key:               readability-magic-numbers
+    value:             false
+  - key:               readability-braces-around-statements
+    value:             false
+
+# Treat warnings as errors (leave empty to treat them as warnings only)
+WarningsAsErrors: ''
+...
