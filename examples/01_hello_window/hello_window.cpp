@@ -6,6 +6,16 @@
 #include <cstdlib>
 #include <iostream>
 
+struct WindowData {
+    GLFWwindow* window;
+
+    wgpu::Surface surface;
+    wgpu::SurfaceConfiguration currentConfig;
+    wgpu::SurfaceConfiguration targetConfig;
+};
+
+static WindowData* data{};
+
 int main(int argc, char* argv[]) {
     static constexpr auto kTimedWaitAny =
         wgpu::InstanceFeatureName::TimedWaitAny;  // Enable non-blocking
@@ -40,6 +50,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "RequestAdapter failed" << '\n';
     }
 
+    // Print GPU's specs
     wgpu::AdapterInfo info;
     adapter.GetInfo(&info);
 
@@ -95,6 +106,23 @@ int main(int argc, char* argv[]) {
     wgpu::Surface surface = glfwGetWGPUSurface(
         instance.Get(),
         window);  // using utility library to get surface from glfw
+
+    wgpu::SurfaceCapabilities capabilities = {};
+    surface.GetCapabilities(adapter, &capabilities);
+
+    wgpu::SurfaceConfiguration config{};
+    config.device = device;
+    config.usage = wgpu::TextureUsage::RenderAttachment;
+    config.format = capabilities.formats[0];
+    config.alphaMode = capabilities.alphaModes[0];
+    config.presentMode = capabilities.presentModes[0];
+    config.width = 0;
+    config.height = 0;
+
+    data->currentConfig = config;
+    data->targetConfig = config;
+    data->window = window;
+    data->surface = surface;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
