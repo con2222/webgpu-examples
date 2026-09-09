@@ -18,8 +18,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -41,43 +41,42 @@
 #define WGPU_TARGET_EMSCRIPTEN 5
 
 #if defined(__EMSCRIPTEN__)
-#define WGPU_TARGET WGPU_TARGET_EMSCRIPTEN
+    #define WGPU_TARGET WGPU_TARGET_EMSCRIPTEN
 #elif defined(_WIN32)
-#define WGPU_TARGET WGPU_TARGET_WINDOWS
+    #define WGPU_TARGET WGPU_TARGET_WINDOWS
 #elif defined(__APPLE__)
-#define WGPU_TARGET WGPU_TARGET_MACOS
+    #define WGPU_TARGET WGPU_TARGET_MACOS
 #elif defined(_GLFW_WAYLAND)
-#define WGPU_TARGET WGPU_TARGET_LINUX_WAYLAND
+    #define WGPU_TARGET WGPU_TARGET_LINUX_WAYLAND
 #else
-#define WGPU_TARGET WGPU_TARGET_LINUX_X11
+    #define WGPU_TARGET WGPU_TARGET_LINUX_X11
 #endif
 
 #if WGPU_TARGET == WGPU_TARGET_MACOS
-#include <Foundation/Foundation.h>
-#include <QuartzCore/CAMetalLayer.h>
+    #include <Foundation/Foundation.h>
+    #include <QuartzCore/CAMetalLayer.h>
 #endif
 
 #include <GLFW/glfw3.h>
 #if WGPU_TARGET == WGPU_TARGET_MACOS
-#define GLFW_EXPOSE_NATIVE_COCOA
+    #define GLFW_EXPOSE_NATIVE_COCOA
 #elif WGPU_TARGET == WGPU_TARGET_LINUX_X11
-#define GLFW_EXPOSE_NATIVE_X11
+    #define GLFW_EXPOSE_NATIVE_X11
 #elif WGPU_TARGET == WGPU_TARGET_LINUX_WAYLAND
-#define GLFW_EXPOSE_NATIVE_WAYLAND
+    #define GLFW_EXPOSE_NATIVE_WAYLAND
 #elif WGPU_TARGET == WGPU_TARGET_WINDOWS
-#define GLFW_EXPOSE_NATIVE_WIN32
+    #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 
 #if !defined(__EMSCRIPTEN__)
-#include <GLFW/glfw3native.h>
+    #include <GLFW/glfw3native.h>
 #endif
 
-WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow *window)
-{
+WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
 #if WGPU_TARGET == WGPU_TARGET_MACOS
     {
         id metal_layer = [CAMetalLayer layer];
-        NSWindow *ns_window = glfwGetCocoaWindow(window);
+        NSWindow* ns_window = glfwGetCocoaWindow(window);
         [ns_window.contentView setWantsLayer:YES];
         [ns_window.contentView setLayer:metal_layer];
 
@@ -94,29 +93,30 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow *window)
     }
 #elif WGPU_TARGET == WGPU_TARGET_LINUX_X11
     {
-        Display *x11_display = glfwGetX11Display();
+        Display* x11_display = glfwGetX11Display();
         Window x11_window = glfwGetX11Window(window);
 
-        WGPUSurfaceDescriptorFromXlibWindow fromXlibWindow;
+        WGPUSurfaceSourceXlibWindow fromXlibWindow;
         fromXlibWindow.chain.next = NULL;
-        fromXlibWindow.chain.sType = WGPUSType_SurfaceDescriptorFromXlibWindow;
+        fromXlibWindow.chain.sType = WGPUSType_SurfaceSourceFromXlibWindow;
         fromXlibWindow.display = x11_display;
-        fromXlibWindow.window = x11_window;
+        fromXlibWindow.window = (uint32_t)x11_window;
 
         WGPUSurfaceDescriptor surfaceDescriptor;
-        surfaceDescriptor.nextInChain = &fromXlibWindow.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.nextInChain =
+            (const WGPUChainedStruct*)&fromXlibWindow.chain;
+        surfaceDescriptor.label = "X11 Window Surface";
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
 #elif WGPU_TARGET == WGPU_TARGET_LINUX_WAYLAND
     {
-        struct wl_display *wayland_display = glfwGetWaylandDisplay();
-        struct wl_surface *wayland_surface = glfwGetWaylandWindow(window);
+        struct wl_display* wayland_display = glfwGetWaylandDisplay();
+        struct wl_surface* wayland_surface = glfwGetWaylandWindow(window);
 
-        WGPUSurfaceDescriptorFromWaylandSurface fromWaylandSurface;
+        WGPUSurfaceSourceWaylandSurface fromWaylandSurface;
         fromWaylandSurface.chain.next = NULL;
-        fromWaylandSurface.chain.sType = WGPUSType_SurfaceDescriptorFromWaylandSurface;
+        fromWaylandSurface.chain.sType = WGPUSType_SurfaceSourceWaylandSurface;
         fromWaylandSurface.display = wayland_display;
         fromWaylandSurface.surface = wayland_surface;
 
@@ -146,7 +146,8 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow *window)
     {
         WGPUSurfaceDescriptorFromCanvasHTMLSelector fromCanvasHTMLSelector;
         fromCanvasHTMLSelector.chain.next = NULL;
-        fromCanvasHTMLSelector.chain.sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector;
+        fromCanvasHTMLSelector.chain.sType =
+            WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector;
         fromCanvasHTMLSelector.selector = "canvas";
 
         WGPUSurfaceDescriptor surfaceDescriptor;
@@ -156,6 +157,6 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow *window)
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
 #else
-#error "Unsupported WGPU_TARGET"
+    #error "Unsupported WGPU_TARGET"
 #endif
 }
