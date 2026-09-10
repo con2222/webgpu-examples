@@ -23,6 +23,8 @@ imgui.ini
 *.spv
 *.json
 
+!utility/d3dcompiler_47.dll
+
 .DS_Store
 Thumbs.db
 release/*
