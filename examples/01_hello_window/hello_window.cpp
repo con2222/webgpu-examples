@@ -1,4 +1,5 @@
 #include <GLFW/glfw3.h>
+#include <endian.h>
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_cpp_print.h>
@@ -34,6 +35,20 @@ fn main_fs(vertexData : VertexOutput) -> @location(0)vec4f {
 }
 )";
 
+wgpu::ShaderModule CreateShaderModule(const wgpu::Device& device,
+                                      const char* source) {
+    wgpu::ShaderSourceWGSL wgslDesc;
+    wgslDesc.code = source;
+    wgpu::ShaderModuleDescriptor descriptor;
+    descriptor.nextInChain = &wgslDesc;
+    return device.CreateShaderModule(&descriptor);
+}
+
+wgpu::ShaderModule CreateShaderModule(const wgpu::Device& device,
+                                      const std::string& source) {
+    return CreateShaderModule(device, source.c_str());
+}
+
 struct WindowData {
     GLFWwindow* window;
 
@@ -49,13 +64,47 @@ void SyncFromWindow(WindowData* data) {
     data->targetConfig.height = std::max(1u, static_cast<uint32_t>(height));
 }
 
-void DoRender(WindowData* data) {
+bool IsSameConfig(wgpu::SurfaceConfiguration& a,
+                  wgpu::SurfaceConfiguration& b) {
+    return a.device.Get() == b.device.Get() &&  //
+           a.format == b.format &&              //
+           a.usage == b.usage &&                //
+           a.alphaMode == b.alphaMode &&        //
+           a.width == b.width &&                //
+           a.height == b.height &&              //
+           a.presentMode == b.presentMode;
+}
+
+void DoRender(WindowData* data, wgpu::Device device,
+              wgpu::RenderPipeline pipeline, wgpu::Queue queue) {
     wgpu::SurfaceTexture surfaceTexture;
     data->surface.GetCurrentTexture(&surfaceTexture);
     wgpu::TextureView view = surfaceTexture.texture.CreateView();
 
-    wgpu::CommandEncoder commandEncoder = {};
-    // commandEncoder.BeginRenderPass();
+    wgpu::CommandEncoder commandEncoder = device.CreateCommandEncoder();
+    wgpu::RenderPassDescriptor desc = {};
+    wgpu::RenderPassColorAttachment colorAttachment = {};
+
+    colorAttachment.view = view;
+    colorAttachment.loadOp = wgpu::LoadOp::Clear;
+    colorAttachment.storeOp = wgpu::StoreOp::Store;
+    colorAttachment.clearValue = wgpu::Color{0.0, 0.0, 0.0, 0.0};
+
+    desc.colorAttachments = &colorAttachment;
+    desc.colorAttachmentCount = 1;
+
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&desc);
+    renderPass.SetPipeline(pipeline);
+    renderPass.Draw(3);
+    renderPass.End();
+
+    wgpu::CommandBuffer cmdBuffer = commandEncoder.Finish();
+    queue.Submit(1, &cmdBuffer);
+
+    wgpu::Status presentStatus = data->surface.Present();
+    if (presentStatus != wgpu::Status::Success) {
+        std::cout << "Present status failed" << '\n';
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -142,10 +191,6 @@ int main(int argc, char* argv[]) {
     // Get queue
     wgpu::Queue queue = device.GetQueue();
 
-    // Create renderPipeline
-    wgpu::RenderPipelineDescriptor pipelineDescriptor = {};
-    wgpu::VertexState* vertex = &pipelineDescriptor.vertex;
-
     // GLFW setup
     glfwSetErrorCallback([](int code, const char* message) {
         std::cerr << "GLFW error " << code << " " << message;
@@ -179,10 +224,65 @@ int main(int argc, char* argv[]) {
     data.surface = surface;
     SyncFromWindow(&data);
 
+    // Create renderPipeline
+    wgpu::ShaderModule shaderModule = CreateShaderModule(device, shader);
+    wgpu::RenderPipelineDescriptor pipelineDescriptor = {};
+
+    pipelineDescriptor.layout = nullptr;
+    pipelineDescriptor.vertex.buffers = nullptr;
+    pipelineDescriptor.vertex.bufferCount = 0;
+    pipelineDescriptor.vertex.module = shaderModule;
+    pipelineDescriptor.vertex.entryPoint = "main_vs";
+
+    pipelineDescriptor.primitive.topology =
+        wgpu::PrimitiveTopology::TriangleList;
+    pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
+    pipelineDescriptor.primitive.stripIndexFormat =
+        wgpu::IndexFormat::Undefined;
+    pipelineDescriptor.primitive.frontFace = wgpu::FrontFace::CCW;
+    pipelineDescriptor.primitive.cullMode = wgpu::CullMode::None;
+
+    pipelineDescriptor.depthStencil = nullptr;
+
+    pipelineDescriptor.multisample.mask = 0xFFFFFFFF;
+    pipelineDescriptor.multisample.count = 1;
+    pipelineDescriptor.multisample.alphaToCoverageEnabled = false;
+
+    wgpu::FragmentState fragmentState = {};
+    fragmentState.module = shaderModule;
+    fragmentState.entryPoint = "main_fs";
+    fragmentState.targetCount = 1;
+
+    wgpu::ColorTargetState colorTarget = {};
+    colorTarget.format = data.currentConfig.format;
+    fragmentState.targets = &colorTarget;
+
+    pipelineDescriptor.fragment = &fragmentState;
+
+    wgpu::BlendComponent blendComponent = {};
+    blendComponent.srcFactor = wgpu::BlendFactor::One;
+    blendComponent.dstFactor = wgpu::BlendFactor::Zero;
+    blendComponent.operation = wgpu::BlendOperation::Add;
+
+    wgpu::BlendState blendState;
+    blendState.color = blendComponent;
+    blendState.alpha = blendComponent;
+
+    wgpu::RenderPipeline renderPipeline =
+        device.CreateRenderPipeline(&pipelineDescriptor);
+
     while (!glfwWindowShouldClose(data.window)) {
+        instance.ProcessEvents();
         glfwPollEvents();
 
-        DoRender();
+        SyncFromWindow(&data);
+
+        if (!IsSameConfig(data.currentConfig, data.targetConfig)) {
+            data.surface.Configure(&data.targetConfig);
+            data.currentConfig = data.targetConfig;
+        }
+
+        DoRender(&data, device, renderPipeline, queue);
     }
 
     glfwDestroyWindow(window);

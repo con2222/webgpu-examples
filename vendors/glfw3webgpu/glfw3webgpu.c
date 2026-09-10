@@ -120,9 +120,10 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
         fromWaylandSurface.display = wayland_display;
         fromWaylandSurface.surface = wayland_surface;
 
+        WGPUStringView str;
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromWaylandSurface.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.label = str;
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
