@@ -6,6 +6,34 @@
 #include <cstdlib>
 #include <iostream>
 
+const char* shader = R"(
+struct VertexOutput {
+    @builtin(position) position : vec4f,
+    @location(0) pos : vec4f,
+};
+
+@vertex
+fn main_vs(@builtin(vertex_index) idx : u32) -> VertexOutput {
+    var out : VertexOutput;
+    if (idx == 0) {
+        out.pos = vec4f(1.0, 0.0, 0.0, 1.0);
+        out.position = vec4f(1.0, 0.0, 0.0, 1.0);
+    } else if (idx == 1) {
+        out.pos = vec4f(0.0, 1.0, 0.0, 1.0);
+        out.position = vec4f(0.0, 1.0, 0.0, 1.0);
+    } else {
+        out.pos = vec4f(0.0, 0.0, 1.0, 1.0);
+        out.position = vec4f(0.0, 0.0, 1.0, 1.0);
+    }
+    return out;
+}
+
+@fragment
+fn main_fs(vertexData : VertexOutput) -> @location(0)vec4f {
+    return vertexData.pos;
+}
+)";
+
 struct WindowData {
     GLFWwindow* window;
 
@@ -14,7 +42,21 @@ struct WindowData {
     wgpu::SurfaceConfiguration targetConfig;
 };
 
-static WindowData* data{};
+void SyncFromWindow(WindowData* data) {
+    int height, width;
+    glfwGetFramebufferSize(data->window, &height, &width);
+    data->targetConfig.width = std::max(1u, static_cast<uint32_t>(width));
+    data->targetConfig.height = std::max(1u, static_cast<uint32_t>(height));
+}
+
+void DoRender(WindowData* data) {
+    wgpu::SurfaceTexture surfaceTexture;
+    data->surface.GetCurrentTexture(&surfaceTexture);
+    wgpu::TextureView view = surfaceTexture.texture.CreateView();
+
+    wgpu::CommandEncoder commandEncoder = {};
+    // commandEncoder.BeginRenderPass();
+}
 
 int main(int argc, char* argv[]) {
     static constexpr auto kTimedWaitAny =
@@ -48,6 +90,7 @@ int main(int argc, char* argv[]) {
     instance.WaitAny(futureAdapter, UINT64_MAX);
     if (adapter == nullptr) {
         std::cerr << "RequestAdapter failed" << '\n';
+        return 1;
     }
 
     // Print GPU's specs
@@ -86,12 +129,22 @@ int main(int argc, char* argv[]) {
     wgpu::Future deviceFuture = adapter.RequestDevice(
         &deviceDescriptor, wgpu::CallbackMode::WaitAnyOnly, deviceCallback,
         userData);
-
     instance.WaitAny(deviceFuture, UINT64_MAX);
+    if (device == nullptr) {
+        std::cerr << "RequsetDevice failed" << '\n';
+        return EXIT_FAILURE;
+    }
 
-    /* 2
+    /* 2. Second way to get device
     adapter.CreateDevice(&deviceDescriptor);
     */
+
+    // Get queue
+    wgpu::Queue queue = device.GetQueue();
+
+    // Create renderPipeline
+    wgpu::RenderPipelineDescriptor pipelineDescriptor = {};
+    wgpu::VertexState* vertex = &pipelineDescriptor.vertex;
 
     // GLFW setup
     glfwSetErrorCallback([](int code, const char* message) {
@@ -119,13 +172,17 @@ int main(int argc, char* argv[]) {
     config.width = 0;
     config.height = 0;
 
-    data->currentConfig = config;
-    data->targetConfig = config;
-    data->window = window;
-    data->surface = surface;
+    WindowData data = {};
+    data.currentConfig = config;
+    data.targetConfig = config;
+    data.window = window;
+    data.surface = surface;
+    SyncFromWindow(&data);
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(data.window)) {
         glfwPollEvents();
+
+        DoRender();
     }
 
     glfwDestroyWindow(window);
