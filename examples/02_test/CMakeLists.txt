@@ -18,6 +18,6 @@ if (WIN32)
 add_custom_command(TARGET test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/utility/d3dcompiler_47.dll"
-        "$<TARGET_FILE_DIR:hello_window>"
+        "$<TARGET_FILE_DIR:test>"
 )
 endif()
