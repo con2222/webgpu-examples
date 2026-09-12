@@ -1,3 +1,5 @@
 add_subdirectory(01_hardcode_triangle)
 add_subdirectory(02_vertex_buffer_triangle)
 add_subdirectory(03_indexed_rectangle)
+add_subdirectory(04_planar_triangle)
+add_subdirectory(04.5_sub-allocation_triangle)
