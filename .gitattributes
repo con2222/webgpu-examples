@@ -4,3 +4,6 @@
 
 *.cmake linguist-detectable=false
 CMakeLists.txt linguist-detectable=false
+
+examples/** linguist-documentation=false
+examples/** linguist-vendored=false
