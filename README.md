@@ -8,7 +8,7 @@ This repository contains a collection of educational examples for working with t
 
 All examples are drawn from my personal experience learning graphics APIs. I have tried to structure the learning curve from the most basic concepts (window initialization) to more advanced ones.
 
-The main principle of the repository is: **one example — one file**. The code is intentionally not split into a complex architecture so that it is easy to read from top to bottom. Inside, you will find detailed explanatory comments for each stage of the WebGPU setup.
+The main principle of the repository is simplicity and focus. Reusable boilerplate code from previous examples is encapsulated into a single header and source file pair (.h/.cpp). Meanwhile, all the new WebGPU logic for the current example is kept entirely within the main file. The architecture is intentionally kept flat so you can easily read the core logic from top to bottom, accompanied by detailed explanatory comments.
 
 ## Project Structure
 
