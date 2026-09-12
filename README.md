@@ -27,7 +27,7 @@ To successfully compile the examples on your computer, you must have the followi
     
 2. **C++ Compiler** with C++20 standard support.
     
-3. **SDL3** — used for creating cross-platform windows and handling events.
+3. **GLFW** — used for creating cross-platform windows and handling events.
     
 4. **Google Dawn** (WebGPU implementation).
     
