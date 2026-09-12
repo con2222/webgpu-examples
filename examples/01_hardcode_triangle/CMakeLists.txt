@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...4.4)
 
 project(hardcode_triangle VERSION 1.0
-        DESCRIPTION "Create window with wgpu"
+        DESCRIPTION "Create triangle using hardcode coords with wgpu"
         LANGUAGES C CXX
 )
 
