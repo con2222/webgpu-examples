@@ -154,8 +154,8 @@ int main() {
     //
     // Buffer:
     // [positions........][colors..........]
-    //                     ^
-    //                     positionSize
+    //                    ^
+    //                    positionSize
     ctx.queue.WriteBuffer(sharedVertexBuffer, positionSize, colors.data(),
                           colorsSize);
 
