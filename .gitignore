@@ -22,6 +22,8 @@ imgui.ini
 
 *.spv
 *.json
+*.jpg
+!texture.jpg
 
 !utility/d3dcompiler_47.dll
 
