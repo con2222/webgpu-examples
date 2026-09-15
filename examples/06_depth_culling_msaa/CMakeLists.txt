@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(${FILE_NAME} depth_culling_msaa.cpp context.cpp)
-target_include_directories(${FILE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/vendors ${CMAKE_CURRENT_SOURCE_DIR})
 
 
 target_link_libraries(${FILE_NAME} PUBLIC dawn::webgpu_dawn glfw3webgpu)
