@@ -1,4 +1,3 @@
-#include <glfw/glfw3.h>
 #include <glfw3webgpu.h>
 
 #include <context.hpp>
