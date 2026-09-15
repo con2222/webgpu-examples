@@ -6,7 +6,7 @@
 #include <math.hpp>
 #include <vector>
 
-#define IMAGE_NAME "utility/kiana.jpg"
+#define IMAGE_NAME "utility/texture.jpg"
 
 struct VertexAttribute {
     vec4 position;
