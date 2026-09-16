@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14...4.2)
 
 project(instanced_rendering VERSION 1.0
-        DESCRIPTION "Create triangle using vertex buffer with wgpu"
+        DESCRIPTION "Instanced Rendering"
         LANGUAGES C CXX
 )
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...4.4)
 
 project(sub-allocation_triangle VERSION 1.0
-        DESCRIPTION "Create triangle using hardcode coords with wgpu"
+        DESCRIPTION "Shared Buffer"
         LANGUAGES C CXX
 )
 

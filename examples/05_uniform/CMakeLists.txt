@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...4.4)
 
 project(uniform VERSION 1.0
-        DESCRIPTION "Create triangle using vertex buffer with wgpu"
+        DESCRIPTION "Uniform buffer"
         LANGUAGES C CXX
 )
 

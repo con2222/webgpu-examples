@@ -1,18 +1,18 @@
-cmake_minimum_required(VERSION 3.15...4.4)
+cmake_minimum_required(VERSION 3.14...4.2)
 
-project(depth_culling_msaa VERSION 1.0
-        DESCRIPTION "Depth, MSAA and Culling"
+project(buffer_mapping VERSION 1.0
+        DESCRIPTION "Buffer Mapping"
         LANGUAGES C CXX
 )
 
-set(FILE_NAME depth_culling_msaa)
+set(FILE_NAME buffer_mapping)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(${FILE_NAME} depth_culling_msaa.cpp context.cpp)
+add_executable(${FILE_NAME} buffer_mapping.cpp context.cpp)
 target_include_directories(${FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/vendors ${CMAKE_CURRENT_SOURCE_DIR})
 
 
@@ -22,6 +22,6 @@ if (WIN32)
 add_custom_command(TARGET ${FILE_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/utility/d3dcompiler_47.dll"
-        "$<TARGET_FILE_DIR:depth_culling_msaa>"
+        "$<TARGET_FILE_DIR:buffer_mapping>"
 )
 endif()

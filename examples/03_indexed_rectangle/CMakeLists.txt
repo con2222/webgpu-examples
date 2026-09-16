@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...4.4)
 
 project(indexed_rectangle VERSION 1.0
-        DESCRIPTION "Create window with wgpu"
+        DESCRIPTION "Use indices to render triangle"
         LANGUAGES C CXX
 )
 
