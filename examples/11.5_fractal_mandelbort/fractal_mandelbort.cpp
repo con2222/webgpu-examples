@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <random>
+#include <thread>
 #include <vector>
 
 constexpr uint32_t WIDTH = 80;
@@ -9,6 +10,28 @@ constexpr uint32_t HEIGHT = 40;
 constexpr uint64_t BUFFER_SIZE = WIDTH * HEIGHT * sizeof(uint32_t);
 
 WebGPUContext ctx;
+
+// ---------------------------------------------------------
+// Fractal camera
+//
+// centerX / centerY:
+//     point in the Mandelbrot plane that stays in the
+//     center of the screen.
+//
+// zoom:
+//     size of the visible area around the center.
+//     Smaller value = stronger zoom.
+//
+// _pad:
+//     keeps the C++ struct layout compatible with the
+//     WGSL uniform layout.
+// ---------------------------------------------------------
+struct Uniforms {
+    float centerX;
+    float centerY;
+    float zoom;
+    float _pad;
+};
 
 const char* shader = R"(
 // ---------------------------------------------------------
@@ -21,10 +44,25 @@ const char* shader = R"(
 override WIDTH: u32;
 override HEIGHT: u32;
 
+struct Uniform {
+    centerX: f32,
+    centerY: f32,
+    zoom: f32,
+    _pad: f32,
+};
+
 // Each element stores the number of Mandelbrot iterations
 // for one output cell.
 @group(0) @binding(0)
 var<storage, read_write> computeData: array<u32>;
+
+
+// Dynamic camera parameters.
+//
+// Unlike override constants, uniform values can be changed
+// every frame without recreating the pipeline.
+@group(0) @binding(1)
+var<uniform> camera: Uniform;
 
 // ---------------------------------------------------------
 // Compute shader
@@ -51,20 +89,30 @@ fn compute_main(
         f32(id.y) / f32(HEIGHT)
     );
 
-    // Map normalized coordinates into the Mandelbrot plane:
+
+    // Preserve the aspect ratio of the terminal output.
+    // WIDTH is twice HEIGHT, so without this correction
+    // the Mandelbrot set would appear stretched vertically.
+    let aspect = f32(HEIGHT) / f32(WIDTH);
+
+    // Move UV coordinates so that (0, 0) is the center
+    // of the screen instead of the top-left corner.
     //
-    // X: [-2, 1]
-    // Y: [-1, 1]
-    let c = vec2f(
-        uv.x * 3.0 - 2.0,
-        uv.y * 2.0 - 1.0
-    );
+    // Then scale them by camera.zoom.
+    // Smaller zoom means a smaller visible region,
+    // therefore the image appears magnified.
+    let centered_uv = vec2f((uv.x - 0.5) * camera.zoom, (uv.y - 0.5) * camera.zoom * aspect);
+
+
+    // Move the visible region to the selected point
+    // in the Mandelbrot coordinate system.
+    let c = centered_uv + vec2f(camera.centerX, camera.centerY);
 
     // Mandelbrot iteration starts at z = 0.
     var z = vec2f(0.0, 0.0);
 
     var iterations: u32 = 0u;
-    let max_iterations: u32 = 100u;
+    let max_iterations: u32 = 500u;
 
     while (iterations < max_iterations) {
 
@@ -126,9 +174,8 @@ int main() {
     // MapRead:
     //     allows CPU to map and read the result afterwards.
     // ---------------------------------------------------------
-    storageBufferDesc.usage = wgpu::BufferUsage::Storage |
-                              wgpu::BufferUsage::CopySrc |
-                              wgpu::BufferUsage::CopyDst;
+    storageBufferDesc.usage =
+        wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopySrc;
     wgpu::Buffer storageBuffer = ctx.device.CreateBuffer(&storageBufferDesc);
 
     storageBufferDesc.usage =
@@ -136,17 +183,40 @@ int main() {
     wgpu::Buffer readStorageBuffer =
         ctx.device.CreateBuffer(&storageBufferDesc);
 
-    std::vector<wgpu::BindGroupLayoutEntry> BindLayoutEntries(1);
+    // ---------------------------------------------------------
+    // Camera uniform buffer
+    //
+    // This buffer contains parameters that change while the
+    // program is running.
+    //
+    // CopyDst is required because Queue::WriteBuffer()
+    // updates the camera data every frame.
+    // ---------------------------------------------------------
+    wgpu::BufferDescriptor uniformsBufferDesc = {};
+    uniformsBufferDesc.label = "Uniform buffer";
+    uniformsBufferDesc.mappedAtCreation = false;
+    uniformsBufferDesc.size = sizeof(Uniforms);
+    uniformsBufferDesc.usage =
+        wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
+    wgpu::Buffer uniformBuffer = ctx.device.CreateBuffer(&uniformsBufferDesc);
 
-    BindLayoutEntries[0].binding = 0;
-    BindLayoutEntries[0].buffer.type = wgpu::BufferBindingType::Storage;
-    BindLayoutEntries[0].buffer.minBindingSize = BUFFER_SIZE;
-    BindLayoutEntries[0].buffer.hasDynamicOffset = false;
-    BindLayoutEntries[0].visibility = wgpu::ShaderStage::Compute;
+    std::vector<wgpu::BindGroupLayoutEntry> bindLayoutEntries(2);
+
+    bindLayoutEntries[0].binding = 0;
+    bindLayoutEntries[0].buffer.type = wgpu::BufferBindingType::Storage;
+    bindLayoutEntries[0].buffer.minBindingSize = BUFFER_SIZE;
+    bindLayoutEntries[0].buffer.hasDynamicOffset = false;
+    bindLayoutEntries[0].visibility = wgpu::ShaderStage::Compute;
+
+    bindLayoutEntries[1].binding = 1;
+    bindLayoutEntries[1].buffer.type = wgpu::BufferBindingType::Uniform;
+    bindLayoutEntries[1].buffer.minBindingSize = sizeof(Uniforms);
+    bindLayoutEntries[1].buffer.hasDynamicOffset = false;
+    bindLayoutEntries[1].visibility = wgpu::ShaderStage::Compute;
 
     wgpu::BindGroupLayoutDescriptor BGLayoutDesc = {};
-    BGLayoutDesc.entries = BindLayoutEntries.data();
-    BGLayoutDesc.entryCount = BindLayoutEntries.size();
+    BGLayoutDesc.entries = bindLayoutEntries.data();
+    BGLayoutDesc.entryCount = bindLayoutEntries.size();
     wgpu::BindGroupLayout BGLayout =
         ctx.device.CreateBindGroupLayout(&BGLayoutDesc);
 
@@ -156,11 +226,16 @@ int main() {
     wgpu::PipelineLayout pipelineLayout =
         ctx.device.CreatePipelineLayout(&pipelineLayoutDescriptor);
 
-    std::vector<wgpu::BindGroupEntry> bindGroupEntries(1);
+    std::vector<wgpu::BindGroupEntry> bindGroupEntries(2);
     bindGroupEntries[0].binding = 0;
     bindGroupEntries[0].buffer = storageBuffer;
     bindGroupEntries[0].offset = 0;
     bindGroupEntries[0].size = BUFFER_SIZE;
+
+    bindGroupEntries[1].binding = 1;
+    bindGroupEntries[1].buffer = uniformBuffer;
+    bindGroupEntries[1].offset = 0;
+    bindGroupEntries[1].size = sizeof(Uniforms);
 
     wgpu::BindGroupDescriptor bindGroupDesc = {};
     bindGroupDesc.entries = bindGroupEntries.data();
@@ -208,92 +283,127 @@ int main() {
     wgpu::ComputePipeline computePipeline =
         ctx.device.CreateComputePipeline(&computePipelineDesc);
 
-    wgpu::CommandEncoder cmdEncoder = ctx.device.CreateCommandEncoder();
+    // Start near an interesting boundary region of the
+    // Mandelbrot set.
+    //
+    // Zooming into the boundary reveals increasingly
+    // detailed fractal structures.
+    Uniforms camera = {};
+    camera.centerX = -0.743643887f;
+    camera.centerY = 0.131825904f;
+    camera.zoom = 0.1f;
 
-    wgpu::ComputePassEncoder computePass = cmdEncoder.BeginComputePass();
-    computePass.SetPipeline(computePipeline);
-    computePass.SetBindGroup(0, bindGroup);
+    // Clear the terminal once before the animation starts.
+    std::cout << "\x1b[2J";
 
-    // ---------------------------------------------------------
-    // Dispatch 2D workgroup grid
-    //
-    // Shader uses:
-    //     @workgroup_size(8, 8, 1)
-    //
-    // Therefore one workgroup covers an 8x8 block.
-    //
-    // For WIDTH = 80:
-    //     80 / 8 = 10 workgroups in X
-    //
-    // For HEIGHT = 40:
-    //     40 / 8 = 5 workgroups in Y
-    //
-    // Total:
-    //     10 * 5 workgroups
-    //     80 * 40 shader invocations
-    //
-    // The rounded-up formula also works when the dimensions
-    // are not exactly divisible by 8.
-    // ---------------------------------------------------------
-    uint32_t groupsX = (WIDTH + 7) / 8;
-    uint32_t groupsY = (HEIGHT + 7) / 8;
-    computePass.DispatchWorkgroups(groupsX, groupsY, 1);
-    computePass.End();
+    while (true) {
+        // Upload the current camera state to the GPU.
+        //
+        // The pipeline and bind group stay the same.
+        // Only the uniform data changes between frames.
+        ctx.queue.WriteBuffer(uniformBuffer, 0, &camera, sizeof(Uniforms));
 
-    // Compute shader writes into storageBuffer.
-    //
-    // After the compute pass finishes, copy the results into
-    // the CPU-readable readback buffer.
-    cmdEncoder.CopyBufferToBuffer(storageBuffer, 0, readStorageBuffer, 0,
-                                  BUFFER_SIZE);
+        wgpu::CommandEncoder cmdEncoder = ctx.device.CreateCommandEncoder();
 
-    wgpu::CommandBuffer cmdBuffer = cmdEncoder.Finish();
-    ctx.queue.Submit(1, &cmdBuffer);
+        wgpu::ComputePassEncoder computePass = cmdEncoder.BeginComputePass();
+        computePass.SetPipeline(computePipeline);
+        computePass.SetBindGroup(0, bindGroup);
 
-    auto onBufferMapped = [](wgpu::MapAsyncStatus status,
-                             wgpu::StringView message) {
-        if (status != wgpu::MapAsyncStatus::Success) {
-            std::cerr << "Map failed\n";
+        // ---------------------------------------------------------
+        // Dispatch 2D workgroup grid
+        //
+        // Shader uses:
+        //     @workgroup_size(8, 8, 1)
+        //
+        // Therefore one workgroup covers an 8x8 block.
+        //
+        // For WIDTH = 80:
+        //     80 / 8 = 10 workgroups in X
+        //
+        // For HEIGHT = 40:
+        //     40 / 8 = 5 workgroups in Y
+        //
+        // Total:
+        //     10 * 5 workgroups
+        //     80 * 40 shader invocations
+        //
+        // The rounded-up formula also works when the dimensions
+        // are not exactly divisible by 8.
+        // ---------------------------------------------------------
+        uint32_t groupsX = (WIDTH + 7) / 8;
+        uint32_t groupsY = (HEIGHT + 7) / 8;
+        computePass.DispatchWorkgroups(groupsX, groupsY, 1);
+        computePass.End();
+
+        // Compute shader writes into storageBuffer.
+        //
+        // After the compute pass finishes, copy the results into
+        // the CPU-readable readback buffer.
+        cmdEncoder.CopyBufferToBuffer(storageBuffer, 0, readStorageBuffer, 0,
+                                      BUFFER_SIZE);
+
+        wgpu::CommandBuffer cmdBuffer = cmdEncoder.Finish();
+        ctx.queue.Submit(1, &cmdBuffer);
+
+        auto onBufferMapped = [](wgpu::MapAsyncStatus status,
+                                 wgpu::StringView message) {
+            if (status != wgpu::MapAsyncStatus::Success) {
+                std::cerr << "Map failed\n";
+            }
+        };
+
+        wgpu::Future bufferAsyncReadFuture = readStorageBuffer.MapAsync(
+            wgpu::MapMode::Read, 0, BUFFER_SIZE,
+            wgpu::CallbackMode::WaitAnyOnly, onBufferMapped);
+
+        ctx.instance.WaitAny(bufferAsyncReadFuture, UINT64_MAX);
+
+        const uint32_t* bufferdata = static_cast<const uint32_t*>(
+            readStorageBuffer.GetConstMappedRange(0, BUFFER_SIZE));
+
+        // Move the cursor back to the top-left corner.
+        // The next frame overwrites the previous one instead
+        // of being printed below it.
+        std::cout << "\x1b[H";
+
+        for (uint32_t y = 0; y < HEIGHT; ++y) {
+            for (uint32_t x = 0; x < WIDTH; ++x) {
+                // Each buffer element represents one screen/fractal cell.
+                //
+                // Convert:
+                //     (x, y) -> linear buffer index
+                //
+                //     index = y * WIDTH + x
+                //
+                // Larger iteration count means the point stayed inside
+                // the Mandelbrot iteration longer.
+                uint32_t iters = bufferdata[y * WIDTH + x];
+
+                if (iters == 500)
+                    std::cout << "#";
+                else if (iters > 100)
+                    std::cout << "*";
+                else if (iters > 30)
+                    std::cout << ":";
+                else if (iters > 10)
+                    std::cout << ".";
+                else
+                    std::cout << " ";
+            }
+            std::cout << "\n";
         }
-    };
 
-    wgpu::Future bufferAsyncReadFuture = readStorageBuffer.MapAsync(
-        wgpu::MapMode::Read, 0, BUFFER_SIZE, wgpu::CallbackMode::WaitAnyOnly,
-        onBufferMapped);
+        readStorageBuffer.Unmap();
 
-    ctx.instance.WaitAny(bufferAsyncReadFuture, UINT64_MAX);
+        // Reduce the visible area slightly every frame.
+        //
+        // Smaller zoom -> smaller region of the Mandelbrot plane
+        // -> stronger visual magnification.
+        camera.zoom *= 0.995f;
+        std::cout << std::flush;
 
-    const uint32_t* bufferdata = static_cast<const uint32_t*>(
-        readStorageBuffer.GetConstMappedRange(0, BUFFER_SIZE));
-
-    for (uint32_t y = 0; y < HEIGHT; ++y) {
-        for (uint32_t x = 0; x < WIDTH; ++x) {
-            // Each buffer element represents one screen/fractal cell.
-            //
-            // Convert:
-            //     (x, y) -> linear buffer index
-            //
-            //     index = y * WIDTH + x
-            //
-            // Larger iteration count means the point stayed inside
-            // the Mandelbrot iteration longer.
-            uint32_t iters = bufferdata[y * WIDTH + x];
-
-            if (iters == 100)
-                std::cout << "#";
-            else if (iters > 50)
-                std::cout << "*";
-            else if (iters > 20)
-                std::cout << ":";
-            else if (iters > 5)
-                std::cout << ".";
-            else
-                std::cout << " ";
-        }
-        std::cout << "\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-    readStorageBuffer.Unmap();
 
     return 0;
 }
