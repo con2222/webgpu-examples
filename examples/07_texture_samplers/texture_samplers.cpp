@@ -480,8 +480,26 @@ int main() {
     wgpu::TextureView imageTextureView = imageTexture.CreateView();
     wgpu::SamplerDescriptor samplerDescriptor = {};
 
-    // Linear filtering interpolates between neighboring texels.
+    // magFilter (Magnification Filter):
+    // Dictates how the GPU samples the texture when the object is close to the
+    // camera, meaning the texture is stretched (one texture pixel/texel covers
+    // multiple screen pixels).
+    //
+    // - wgpu::FilterMode::Linear: Blends adjacent texels together for a smooth,
+    // blurry transition.
+    // - wgpu::FilterMode::Nearest: Snaps to the exact texel color, creating a
+    // sharp, pixelated look (like Minecraft).
     samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
+
+    // minFilter (Minification Filter):
+    // Dictates how the GPU samples the texture when the object is far away,
+    // meaning the texture is scaled down (multiple texels are squeezed into one
+    // screen pixel).
+    //
+    // - wgpu::FilterMode::Linear: Averages the colors of the compressed texels,
+    // reducing visual noise and flickering.
+    // - wgpu::FilterMode::Nearest: Picks just one representative texel from the
+    // group, which can cause severe flickering during movement.
     samplerDescriptor.minFilter = wgpu::FilterMode::Linear;
 
     // UV coordinates outside [0, 1] are clamped to the texture edge.
