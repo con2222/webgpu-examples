@@ -445,9 +445,10 @@ int main() {
             if (depthStencilToggle) {
                 createDepthBuffer(data.currentConfig.width,
                                   data.currentConfig.height);
-                createMSAABuffer(data.currentConfig.width,
-                                 data.currentConfig.height);
             }
+
+            createMSAABuffer(data.currentConfig.width,
+                             data.currentConfig.height);
         }
 
         DoRender(&data, ctx.device, ctx.queue, renderPipeline,

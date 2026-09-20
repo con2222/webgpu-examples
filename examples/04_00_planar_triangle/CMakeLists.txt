@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(${FILE_NAME} planar_triangle.cpp context.cpp context.hpp)
-target_include_directories(${FILE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(${FILE_NAME} planar_triangle.cpp ${CMAKE_SOURCE_DIR}/common/context.cpp)
+target_include_directories(${FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/vendors ${CMAKE_SOURCE_DIR}/common ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(${FILE_NAME} PUBLIC dawn::webgpu_dawn glfw3webgpu)
 

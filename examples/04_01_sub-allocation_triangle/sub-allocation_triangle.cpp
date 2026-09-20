@@ -1,8 +1,12 @@
 #include <context.hpp>
 #include <iostream>
+#include <math.hpp>
 #include <vector>
 
-struct VertexAttribute;
+struct VertexAttributes {
+    vec4 position;
+    vec4 color;
+};
 
 static WindowData data;
 static WebGPUContext ctx;

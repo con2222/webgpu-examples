@@ -401,6 +401,8 @@ int main() {
 
     if (!imageData) {
         std::cerr << "Failed to load image!" << std::endl;
+        return EXIT_FAILURE;
+        glfwTerminate();
     }
 
     ctx.instance = createInstance();

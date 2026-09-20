@@ -1,13 +1,18 @@
 #include <context.hpp>
 #include <iostream>
+#include <math.hpp>
 #include <vector>
 
-struct VertexAttribute;
+struct VertexAttributes {
+    vec4 position;
+    vec4 color;
+};
 
 static WindowData data;
 static WebGPUContext ctx;
 
-const char* shader = R"(struct VertexInput {
+const char* shader = R"(
+struct VertexInput {
     @location(0) position: vec4f,
     @location(1) color: vec4f,
 }

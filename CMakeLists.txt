@@ -12,7 +12,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 option(USE_WAYLAND "Build with Wayland support" ON)
 option(USE_X11 "Build with X11 support" ON)
 
-if (!WIN32)
+if (NOT WIN32)
     if (USE_WAYLAND)
     add_definitions(-D_GLFW_WAYLAND)
     endif()

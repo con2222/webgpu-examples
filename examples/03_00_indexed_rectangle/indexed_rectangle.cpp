@@ -1,8 +1,12 @@
 #include <context.hpp>
 #include <iostream>
+#include <math.hpp>
 #include <vector>
 
-struct VertexAttribute;
+struct VertexAttributes {
+    vec4 position;
+    vec4 color;
+};
 
 static WindowData data;
 static WebGPUContext ctx;
@@ -92,7 +96,7 @@ int main() {
     WindowData data = addWindow(800, 600, "Main window", ctx.instance,
                                 ctx.adapter, ctx.device);
 
-    std::vector<VertexAttribute> vertices = {
+    std::vector<VertexAttributes> vertices = {
         {{-0.5, 0.5, 0.0, 1.0}, {0.55, 0.67, 0.59, 1.0}},
         {{0.5, 0.5, 0.0, 1.0}, {0.25, 0.74, 0.34, 1.0}},
         {{-0.5, -0.5, 0.0, 1.0}, {0.28, 0.63, 0.67, 1.0}},
@@ -106,7 +110,7 @@ int main() {
     wgpu::BufferDescriptor bufferDesc = {};
     bufferDesc.label = "Vertex Buffer";
     bufferDesc.mappedAtCreation = false;
-    bufferDesc.size = vertices.size() * sizeof(VertexAttribute);
+    bufferDesc.size = vertices.size() * sizeof(VertexAttributes);
 
     // Vertex: this buffer can be used as a vertex buffer.
     // CopyDst: Queue::WriteBuffer can copy CPU data into it.
@@ -124,7 +128,7 @@ int main() {
 
     // Upload vertex data from CPU memory to the vertex buffer.
     ctx.queue.WriteBuffer(vertexBuffer, 0, vertices.data(),
-                          vertices.size() * sizeof(VertexAttribute));
+                          vertices.size() * sizeof(VertexAttributes));
 
     // Upload index data from CPU memory to the index buffer.
     ctx.queue.WriteBuffer(indexBuffer, 0, indices.data(),
@@ -145,14 +149,14 @@ int main() {
     std::vector<wgpu::VertexAttribute> vertexAttributes(2);
 
     vertexAttributes[0].format = wgpu::VertexFormat::Float32x4;
-    vertexAttributes[0].offset = offsetof(VertexAttribute, position);
+    vertexAttributes[0].offset = offsetof(VertexAttributes, position);
     vertexAttributes[0].shaderLocation = 0;
 
     vertexAttributes[1].format = wgpu::VertexFormat::Float32x4;
-    vertexAttributes[1].offset = offsetof(VertexAttribute, color);
+    vertexAttributes[1].offset = offsetof(VertexAttributes, color);
     vertexAttributes[1].shaderLocation = 1;
 
-    VBLayout.arrayStride = sizeof(VertexAttribute);
+    VBLayout.arrayStride = sizeof(VertexAttributes);
     VBLayout.attributeCount = 2;
     VBLayout.attributes = vertexAttributes.data();
     VBLayout.stepMode = wgpu::VertexStepMode::Vertex;
